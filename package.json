@@ -1,6 +1,6 @@
 {
 	"name": "@jobmatchme/bee-pi-agent",
-	"version": "0.1.2",
+	"version": "0.1.3",
 	"description": "Bee Dance speaking Unix socket agent runtime derived in part from pi-mom",
 	"type": "module",
 	"bin": {
