@@ -1,0 +1,11 @@
+{{- if .Values.service.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "bee-pi-agent.name" . }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    app.kubernetes.io/name: {{ include "bee-pi-agent.name" . }}
+  ports: []
+{{- end }}

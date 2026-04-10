@@ -1,0 +1,16 @@
+{{- if and .Values.workspace.enabled (eq .Values.workspace.type "pvc") }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "bee-pi-agent.claimName" . }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.workspace.size }}
+  {{- with .Values.workspace.storageClassName }}
+  storageClassName: {{ . }}
+  {{- end }}
+{{- end }}
