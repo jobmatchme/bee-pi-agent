@@ -83,6 +83,10 @@ Primary variables:
 - `BEE_PI_AGENT_TOOL_MODULES` optional comma-separated extra tool modules
 - `BEE_PI_AGENT_SOCKET` optional Unix socket path, default `/var/run/bee/worker.sock`
 
+For OAuth-backed OpenAI usage with a `pi-ai` `auth.json`, use
+`BEE_PI_AGENT_MODEL_PROVIDER=openai-codex`. Plain `openai` expects an API key
+based provider flow instead.
+
 For migration convenience, the older `PI_AGENT_WORKER_*` variables are still
 accepted as fallbacks.
 

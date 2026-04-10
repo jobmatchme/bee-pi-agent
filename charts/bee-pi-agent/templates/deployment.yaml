@@ -38,10 +38,44 @@ spec:
               target_file={{ .Values.auth.mountPath | quote }}
               source_file=/worker-auth-source/{{ .Values.auth.secretKey }}
               target_dir="$(dirname "$target_file")"
+              parent_dir="$(dirname "$target_dir")"
+              if [ "$parent_dir" != "$target_dir" ]; then
+                mkdir -p "$parent_dir"
+                {{- if .Values.runtimeHome.enabled }}
+                chown 0:0 "$parent_dir"
+                chmod 700 "$parent_dir"
+                {{- end }}
+              fi
+              {{- if .Values.runtimeHome.enabled }}
+              if [ -d "$target_dir" ]; then
+                chown 0:0 "$target_dir"
+                chmod 700 "$target_dir"
+              fi
+              {{- end }}
               mkdir -p "$target_dir"
-              cp "$source_file" "$target_file"
-              chmod 600 "$target_file"
-              chown {{ .Values.pod.runAsUser }}:{{ .Values.pod.runAsGroup }} "$target_file"
+              {{- if .Values.runtimeHome.enabled }}
+              if [ -f "$target_file" ]; then
+                chown 0:0 "$target_file"
+                chmod 600 "$target_file"
+              fi
+              {{- end }}
+              tmp_file="$target_file.tmp"
+              cp "$source_file" "$tmp_file"
+              {{- if .Values.runtimeHome.enabled }}
+              chmod 600 "$tmp_file"
+              chown {{ .Values.pod.runAsUser }}:{{ .Values.pod.runAsGroup }} "$tmp_file"
+              mv -f "$tmp_file" "$target_file"
+              chown {{ .Values.pod.runAsUser }}:{{ .Values.pod.runAsGroup }} "$target_dir"
+              chmod 700 "$target_dir"
+              if [ "$parent_dir" != "$target_dir" ] && [ -d "$parent_dir" ]; then
+                chown {{ .Values.pod.runAsUser }}:{{ .Values.pod.runAsGroup }} "$parent_dir"
+                chmod 700 "$parent_dir"
+              fi
+              {{- else }}
+              mv -f "$tmp_file" "$target_file"
+              chgrp {{ .Values.pod.fsGroup }} "$target_file"
+              chmod 640 "$target_file"
+              {{- end }}
           securityContext:
             runAsUser: 0
             runAsGroup: 0
