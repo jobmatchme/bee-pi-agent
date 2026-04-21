@@ -1,9 +1,16 @@
 # syntax=docker/dockerfile:1.6
+FROM node:20-alpine AS build
+
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build && npm prune --omit=dev
+
 FROM node:20-alpine
 
-LABEL org.opencontainers.image.source="https://github.com/jobmatchme/bee-pi-agent"
-
-ARG BEE_PI_AGENT_PACKAGE=@jobmatchme/bee-pi-agent
+ARG OCI_SOURCE=https://github.com/fabianmewes-jm/Fabee-pi-agent
+LABEL org.opencontainers.image.source="${OCI_SOURCE}"
 
 RUN apk add --no-cache \
     bash \
@@ -17,18 +24,21 @@ RUN apk add --no-cache \
 
 RUN addgroup -g 10001 -S app && adduser -S -D -H -u 10001 -G app -h /home/app app
 
-RUN --mount=type=secret,id=npmrc,target=/root/.npmrc,required=false \
-    npm install -g --ignore-scripts "${BEE_PI_AGENT_PACKAGE}"
+WORKDIR /app
+COPY --from=build /app/package*.json ./
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/README.md ./README.md
+COPY --from=build /app/UPSTREAM.md ./UPSTREAM.md
+COPY --from=build /app/charts ./charts
 
-WORKDIR /workspace
-RUN mkdir -p /home/app /workspace /var/run/bee && chown -R 10001:10001 /home/app /workspace /var/run/bee
+RUN mkdir -p /home/app /workspace /var/run/bee && chown -R 10001:10001 /home/app /workspace /var/run/bee /app
 
 USER 10001:10001
 
 ENV HOME=/home/app
 ENV NODE_ENV=production
 ENV BEE_PI_AGENT_SOCKET=/var/run/bee/worker.sock
-ENV NODE_PATH=/usr/local/lib/node_modules/@jobmatchme/bee-pi-agent/node_modules
 
 ENTRYPOINT ["/sbin/tini", "--"]
-CMD ["bee-pi-agent"]
+CMD ["node", "dist/main.js"]

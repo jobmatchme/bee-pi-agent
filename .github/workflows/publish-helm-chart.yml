@@ -34,13 +34,15 @@ jobs:
         shell: bash
         run: echo "value=${GITHUB_REPOSITORY_OWNER,,}" >> "${GITHUB_OUTPUT}"
 
-      - name: Read package version
+      - name: Read release metadata
         id: versions
         shell: bash
         run: |
           set -euo pipefail
           PACKAGE_VERSION="$(node -p 'require("./package.json").version')"
+          CHART_NAME="$(awk -F': ' '/^name: / { print $2; exit }' "${CHART_DIR}/Chart.yaml")"
           echo "package=${PACKAGE_VERSION}" >> "${GITHUB_OUTPUT}"
+          echo "chart=${CHART_NAME}" >> "${GITHUB_OUTPUT}"
 
       - name: Sync chart metadata from package version
         shell: bash
@@ -70,4 +72,4 @@ jobs:
         run: echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login "${REGISTRY}" -u "${{ github.actor }}" --password-stdin
 
       - name: Push chart
-        run: helm push "bee-pi-agent-${{ steps.versions.outputs.package }}.tgz" "oci://${{ env.REGISTRY }}/${{ steps.owner.outputs.value }}/helm-charts"
+        run: helm push "${{ steps.versions.outputs.chart }}-${{ steps.versions.outputs.package }}.tgz" "oci://${{ env.REGISTRY }}/${{ steps.owner.outputs.value }}/helm-charts"

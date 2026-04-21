@@ -1,6 +1,7 @@
-# `@jobmatchme/bee-pi-agent`
+# `@fabianmewes-jm/fabee-pi-agent`
 
-`bee-pi-agent` is a Bee Dance speaking worker runtime that executes coding-agent
+`@fabianmewes-jm/fabee-pi-agent` is the forked npm package for the
+`bee-pi-agent` Bee Dance speaking worker runtime. It executes coding-agent
 turns over a local Unix socket.
 
 It is intended to sit behind `@jobmatchme/bee-worker-sidecar`: the agent speaks
@@ -28,6 +29,10 @@ The package is the local execution half of a two-container pod shape:
 
 - `bee-pi-agent` owns agent execution and local state
 - `bee-worker-sidecar` owns NATS connectivity and Bee subject routing
+
+In this fork, the published npm package name is
+`@fabianmewes-jm/fabee-pi-agent`, while the runtime binary and several runtime
+identifiers still use the established `bee-pi-agent` naming.
 
 That keeps the agent reusable for deployments that want Bee Dance semantics
 without forcing every worker implementation to speak NATS directly.
@@ -60,7 +65,7 @@ The default socket path is `/var/run/bee/worker.sock`.
 npm install
 npm run build
 BEE_PI_AGENT_WORKSPACE_ROOT=/workspace \
-BEE_PI_AGENT_SOCKET=/tmp/bee-pi-agent.sock \
+BEE_PI_AGENT_SOCKET=/tmp/fabee-pi-agent.sock \
 node dist/main.js
 ```
 
@@ -81,6 +86,10 @@ Primary variables:
 - `BEE_PI_AGENT_MODEL_PROVIDER` optional provider override
 - `BEE_PI_AGENT_MODEL_ID` optional model override
 - `BEE_PI_AGENT_TOOL_MODULES` optional comma-separated extra tool modules
+- `BEE_PI_AGENT_DBT_PROJECT_DIR` optional dbt project directory for the built-in `dbt` tool
+- `BEE_PI_AGENT_DBT_PROFILES_DIR` optional dbt profiles directory for the built-in `dbt` tool
+- `BEE_PI_AGENT_DBT_COMMAND` optional dbt executable path or command name for the built-in `dbt` tool
+- `BEE_PI_AGENT_DBT_TARGET` optional default dbt target for the built-in `dbt` tool
 - `BEE_PI_AGENT_SOCKET` optional Unix socket path, default `/var/run/bee/worker.sock`
 
 For OAuth-backed OpenAI usage with a `pi-ai` `auth.json`, use
@@ -90,19 +99,43 @@ based provider flow instead.
 For migration convenience, the older `PI_AGENT_WORKER_*` variables are still
 accepted as fallbacks.
 
+## Built-in dbt tool
+
+The worker now includes a built-in `dbt` tool so the agent can:
+
+- list models and analyses via `dbt list`
+- preview model output via `dbt show --select ...`
+- execute inline SQL via `dbt show --inline ...`
+- run targeted `dbt build`, `compile`, `run`, `test`, and `parse`
+
+For reliable operation outside a dbt repo, set:
+
+```bash
+BEE_PI_AGENT_DBT_PROJECT_DIR=/path/to/dbt-project
+BEE_PI_AGENT_DBT_PROFILES_DIR=/path/to/dbt-profiles-dir
+BEE_PI_AGENT_DBT_COMMAND=/path/to/dbt
+BEE_PI_AGENT_DBT_TARGET=dev
+```
+
+If `BEE_PI_AGENT_DBT_COMMAND` is not set, the tool tries a local `.venv/bin/dbt` first and then falls back to `dbt` on `PATH`.
+
 ## Docker image
 
 A Dockerfile is included for runtime image builds. Build it locally with:
 
 ```bash
-docker build -t bee-pi-agent:local .
+docker build -t fabee-pi-agent:local .
 ```
+
+In this fork, the Docker image is built directly from the repository source.
+The release flow does not require publishing the npm package first.
 
 The image is designed to be paired with `bee-worker-sidecar` in the same pod.
 
 ## Helm chart
 
-A reusable Helm chart is included under [`charts/bee-pi-agent`](./charts/bee-pi-agent).
+This repo currently still contains a reusable Helm chart under
+[`charts/bee-pi-agent`](./charts/bee-pi-agent).
 The chart deploys:
 
 - one `bee-pi-agent` container
@@ -111,6 +144,10 @@ The chart deploys:
 
 It also supports the same workspace, auth, and git bootstrap patterns that were
 used in the earlier `pi-agent-worker` deployment.
+
+Note: the chart path and chart naming in this repository still use
+`bee-pi-agent`. A chart-level rename to `fabee-pi-agent` is not yet implemented
+here.
 
 ## License
 
