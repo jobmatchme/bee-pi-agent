@@ -20,7 +20,14 @@ RUN apk add --no-cache \
     curl \
     ripgrep \
     ca-certificates \
-    tini
+    tini \
+    python3 \
+    py3-pip \
+    make
+
+RUN python3 -m venv /opt/bootstrap-venv \
+    && /opt/bootstrap-venv/bin/pip install --no-cache-dir --upgrade pip setuptools wheel \
+    && /opt/bootstrap-venv/bin/pip install --no-cache-dir uv
 
 RUN addgroup -g 10001 -S app && adduser -S -D -H -u 10001 -G app -h /home/app app
 
@@ -39,6 +46,7 @@ USER 10001:10001
 ENV HOME=/home/app
 ENV NODE_ENV=production
 ENV BEE_PI_AGENT_SOCKET=/var/run/bee/worker.sock
+ENV PATH=/opt/bootstrap-venv/bin:${PATH}
 
 ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["node", "dist/main.js"]

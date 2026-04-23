@@ -3,6 +3,7 @@ import type { Executor } from "../sandbox.js";
 import type { WorkerRunRequest } from "../types.js";
 import { type ArtifactHandler, createAttachTool } from "./attach.js";
 import { createBashTool } from "./bash.js";
+import { createDbtTool } from "./dbt.js";
 import { createEditTool } from "./edit.js";
 import { loadWorkerToolExtensions } from "./extensions.js";
 import { createReadTool } from "./read.js";
@@ -25,6 +26,7 @@ export async function createWorkerTools(args: CreateWorkerToolsArgs): Promise<Ag
 		createEditTool(args.executor),
 		createWriteTool(args.executor),
 		createAttachTool(args.artifactHandler),
+		createDbtTool(args.executor, args.workspaceRoot, args.workingDir),
 	];
 
 	const extensionTools = await loadWorkerToolExtensions({
