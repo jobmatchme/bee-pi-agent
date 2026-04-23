@@ -10,7 +10,7 @@ on:
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   REGISTRY: ghcr.io
-  CHART_DIR: charts/bee-pi-agent
+  CHART_DIR: charts/fabee-pi-agent
 
 jobs:
   publish:
@@ -54,7 +54,7 @@ jobs:
           from pathlib import Path
 
           version = json.loads(Path("package.json").read_text())["version"]
-          chart_path = Path("charts/bee-pi-agent/Chart.yaml")
+          chart_path = Path("charts/fabee-pi-agent/Chart.yaml")
           chart_text = chart_path.read_text()
           chart_text = re.sub(r"^version: .*$", f"version: {version}", chart_text, flags=re.MULTILINE)
           chart_text = re.sub(r'^appVersion: ".*"$', f'appVersion: "{version}"', chart_text, flags=re.MULTILINE)
