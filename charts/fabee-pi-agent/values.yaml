@@ -66,6 +66,12 @@ config:
   name: ""
   env: {}
 
+dbtProfiles:
+  enabled: false
+  secretName: ""
+  secretKey: profiles.yml
+  mountPath: /workspace/dbt-profiles
+
 auth:
   secretName: ""
   secretKey: auth.json

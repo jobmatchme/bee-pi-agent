@@ -1,6 +1,0 @@
-apiVersion: v2
-name: bee-pi-agent
-description: Helm chart for a bee-pi-agent deployment with bee-worker-sidecar
-type: application
-version: 0.1.0
-appVersion: "0.1.0"

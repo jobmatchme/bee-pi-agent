@@ -135,7 +135,7 @@ The image is designed to be paired with `bee-worker-sidecar` in the same pod.
 ## Helm chart
 
 This repo currently still contains a reusable Helm chart under
-[`charts/bee-pi-agent`](./charts/bee-pi-agent).
+[`charts/fabee-pi-agent`](./charts/fabee-pi-agent).
 The chart deploys:
 
 - one `bee-pi-agent` container
@@ -145,9 +145,7 @@ The chart deploys:
 It also supports the same workspace, auth, and git bootstrap patterns that were
 used in the earlier `pi-agent-worker` deployment.
 
-Note: the chart path and chart naming in this repository still use
-`bee-pi-agent`. A chart-level rename to `fabee-pi-agent` is not yet implemented
-here.
+Note: the chart packaging in this repository now uses `fabee-pi-agent`, while runtime identifiers and several defaults still intentionally use established `bee-pi-agent` naming for compatibility.
 
 ## License
 
