@@ -559,21 +559,8 @@ export async function runWorker(
 			if (assistantMsg.stopReason) stopReason = assistantMsg.stopReason;
 			if (assistantMsg.errorMessage) errorMessage = assistantMsg.errorMessage;
 
-			for (const part of agentEvent.message.content) {
-				if (part.type === "thinking") {
-					const thinkingText = (part as any).thinking;
-					if (typeof thinkingText === "string" && thinkingText.trim()) {
-						await emit(eventSink, {
-							type: "assistant.thinking",
-							runId: request.runId,
-							text: thinkingText,
-						});
-					}
-				}
-				if (part.type === "text") {
-					await emit(eventSink, { type: "assistant.message", runId: request.runId, text: (part as any).text });
-				}
-			}
+			// Do not forward intermediate assistant/thinking messages to the gateway.
+			// The final assistant answer is emitted once after session.prompt() completes.
 			return;
 		}
 
@@ -693,6 +680,10 @@ export async function runWorker(
 		if (stopReason === "error" && errorMessage) {
 			await emit(eventSink, { type: "run.failed", runId: request.runId, error: errorMessage });
 			return;
+		}
+
+		if (finalText.trim()) {
+			await emit(eventSink, { type: "assistant.message", runId: request.runId, text: finalText });
 		}
 
 		await emit(eventSink, {

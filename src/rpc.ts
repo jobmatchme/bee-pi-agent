@@ -28,7 +28,6 @@ interface ActiveTurnState {
 	updatedAt: string;
 	cancelRequested: boolean;
 	assistantItemId?: string;
-	thinkingItemId?: string;
 }
 
 export interface WorkerBeeServer {
@@ -365,24 +364,8 @@ function mapEventToBeeEnvelopes(
 				}),
 			];
 		}
-		case "assistant.thinking": {
-			if (!activeRun.thinkingItemId) {
-				activeRun.thinkingItemId = `item_${randomUUID()}`;
-				return [
-					createItemEventEnvelope(activeRun, requester, "item.appended", {
-						eventType: "item.appended",
-						item: createTextItem(activeRun.thinkingItemId, "thinking", event.text),
-					}),
-				];
-			}
-			return [
-				createItemEventEnvelope(activeRun, requester, "item.updated", {
-					eventType: "item.updated",
-					itemId: activeRun.thinkingItemId,
-					appendParts: [{ kind: "text", text: event.text }],
-				}),
-			];
-		}
+		case "assistant.thinking":
+			return [];
 		case "artifact.created":
 			return [
 				createItemEventEnvelope(activeRun, requester, "item.appended", {

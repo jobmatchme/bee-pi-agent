@@ -142,6 +142,11 @@ describe("createWorkerBeePeer", () => {
 					workspaceDir: "/tmp/workspace",
 				});
 				await sink({
+					type: "assistant.thinking",
+					runId: request.runId,
+					text: "internal reasoning must not be forwarded",
+				});
+				await sink({
 					type: "assistant.message",
 					runId: request.runId,
 					text: "done",

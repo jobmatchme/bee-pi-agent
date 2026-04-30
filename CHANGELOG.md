@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.12
+
+- emit only the final assistant answer to the gateway and suppress internal thinking output
+
 ## 0.1.11
 
 - add `BEE_PI_AGENT_THINKING_LEVEL` support for configuring model reasoning level, including `medium`
