@@ -85,6 +85,7 @@ Primary variables:
 - `BEE_PI_AGENT_AUTH_FILE` optional auth file override
 - `BEE_PI_AGENT_MODEL_PROVIDER` optional provider override
 - `BEE_PI_AGENT_MODEL_ID` optional model override
+- `BEE_PI_AGENT_THINKING_LEVEL` optional reasoning level: `off`, `minimal`, `low`, `medium`, `high`, or `xhigh`; default `off`
 - `BEE_PI_AGENT_TOOL_MODULES` optional comma-separated extra tool modules
 - `BEE_PI_AGENT_DBT_PROJECT_DIR` optional dbt project directory for the built-in `dbt` tool
 - `BEE_PI_AGENT_DBT_PROFILES_DIR` optional dbt profiles directory for the built-in `dbt` tool

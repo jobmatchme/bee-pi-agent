@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.11
+
+- add `BEE_PI_AGENT_THINKING_LEVEL` support for configuring model reasoning level, including `medium`
+- suppress empty assistant thinking events so downstream consumers only receive non-blank thinking output
+- document `BEE_PI_AGENT_THINKING_LEVEL` in the README
+
 ## 0.1.8
 
 - rename Helm chart packaging from `charts/bee-pi-agent` to `charts/fabee-pi-agent`

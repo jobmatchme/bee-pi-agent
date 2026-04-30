@@ -1,4 +1,4 @@
-import { Agent, type AgentEvent, type AgentTool } from "@mariozechner/pi-agent-core";
+import { Agent, type AgentEvent, type AgentTool, type ThinkingLevel } from "@mariozechner/pi-agent-core";
 import type { Api, ImageContent, Model } from "@mariozechner/pi-ai";
 import {
 	AgentSession,
@@ -32,6 +32,8 @@ const DEFAULT_OPENAI_PROVIDER = "openai";
 const DEFAULT_OPENAI_MODEL = "gpt-5-mini";
 const DEFAULT_OPENAI_CODEX_PROVIDER = "openai-codex";
 const DEFAULT_OPENAI_CODEX_MODEL = "gpt-5.2";
+const DEFAULT_THINKING_LEVEL: ThinkingLevel = "off";
+const THINKING_LEVELS = new Set<ThinkingLevel>(["off", "minimal", "low", "medium", "high", "xhigh"]);
 
 const IMAGE_MIME_TYPES: Record<string, string> = {
 	jpg: "image/jpeg",
@@ -144,6 +146,21 @@ async function getModelApiKey(modelRegistry: ModelRegistry, model: Model<Api>, a
 		);
 	}
 	return key;
+}
+
+function getWorkerThinkingLevel(): ThinkingLevel {
+	const configured =
+		process.env.BEE_PI_AGENT_THINKING_LEVEL ||
+		process.env.PI_AGENT_WORKER_THINKING_LEVEL ||
+		process.env.MOM_THINKING_LEVEL;
+	if (!configured) return DEFAULT_THINKING_LEVEL;
+
+	if (!THINKING_LEVELS.has(configured as ThinkingLevel)) {
+		throw new Error(
+			`Invalid thinking level ${configured}. Expected one of: ${Array.from(THINKING_LEVELS).join(", ")}`,
+		);
+	}
+	return configured as ThinkingLevel;
 }
 
 function getMemory(runtimeConfig: WorkerRuntimeConfig): string {
@@ -461,7 +478,7 @@ export async function runWorker(
 		initialState: {
 			systemPrompt,
 			model,
-			thinkingLevel: "off",
+			thinkingLevel: getWorkerThinkingLevel(),
 			tools,
 		},
 		convertToLlm,
@@ -544,11 +561,14 @@ export async function runWorker(
 
 			for (const part of agentEvent.message.content) {
 				if (part.type === "thinking") {
-					await emit(eventSink, {
-						type: "assistant.thinking",
-						runId: request.runId,
-						text: (part as any).thinking,
-					});
+					const thinkingText = (part as any).thinking;
+					if (typeof thinkingText === "string" && thinkingText.trim()) {
+						await emit(eventSink, {
+							type: "assistant.thinking",
+							runId: request.runId,
+							text: thinkingText,
+						});
+					}
 				}
 				if (part.type === "text") {
 					await emit(eventSink, { type: "assistant.message", runId: request.runId, text: (part as any).text });
