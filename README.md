@@ -87,10 +87,14 @@ Primary variables:
 - `BEE_PI_AGENT_MODEL_ID` optional model override
 - `BEE_PI_AGENT_THINKING_LEVEL` optional reasoning level: `off`, `minimal`, `low`, `medium`, `high`, or `xhigh`; default `off`
 - `BEE_PI_AGENT_TOOL_MODULES` optional comma-separated extra tool modules
+- `BEE_PI_AGENT_BASH_TIMEOUT_SECONDS` optional default and hard maximum runtime for built-in `bash` tool commands
 - `BEE_PI_AGENT_DBT_PROJECT_DIR` optional dbt project directory for the built-in `dbt` tool
 - `BEE_PI_AGENT_DBT_PROFILES_DIR` optional dbt profiles directory for the built-in `dbt` tool
 - `BEE_PI_AGENT_DBT_COMMAND` optional dbt executable path or command name for the built-in `dbt` tool
 - `BEE_PI_AGENT_DBT_TARGET` optional default dbt target for the built-in `dbt` tool
+- `BEE_PI_AGENT_DBT_TIMEOUT_SECONDS` optional default and hard maximum runtime for built-in `dbt` tool commands
+- `BEE_PI_AGENT_DBT_PGOPTIONS` optional PostgreSQL/libpq options for built-in `dbt` tool commands, e.g. statement and lock timeouts
+- `PGOPTIONS` optional PostgreSQL/libpq options inherited by direct database clients run by the agent, e.g. `psql`, `dbt`, and psycopg-based scripts
 - `BEE_PI_AGENT_SOCKET` optional Unix socket path, default `/var/run/bee/worker.sock`
 
 For OAuth-backed OpenAI usage with a `pi-ai` `auth.json`, use
@@ -116,9 +120,16 @@ BEE_PI_AGENT_DBT_PROJECT_DIR=/path/to/dbt-project
 BEE_PI_AGENT_DBT_PROFILES_DIR=/path/to/dbt-profiles-dir
 BEE_PI_AGENT_DBT_COMMAND=/path/to/dbt
 BEE_PI_AGENT_DBT_TARGET=dev
+BEE_PI_AGENT_DBT_TIMEOUT_SECONDS=1800
+BEE_PI_AGENT_DBT_PGOPTIONS="-c application_name=bee-pi-agent-dbt -c statement_timeout=1800000 -c lock_timeout=15000 -c idle_in_transaction_session_timeout=60000"
 ```
 
 If `BEE_PI_AGENT_DBT_COMMAND` is not set, the tool tries a local `.venv/bin/dbt` first and then falls back to `dbt` on `PATH`.
+
+If `BEE_PI_AGENT_DBT_TIMEOUT_SECONDS` is set, every dbt tool invocation is killed after that many seconds, even if an individual tool call asks for a longer timeout.
+For PostgreSQL-compatible dbt targets, set `BEE_PI_AGENT_DBT_PGOPTIONS` as a database-side runtime guard for every connection created by the dbt tool. The example above cancels individual statements after 30 minutes, lock waits after 15 seconds, and idle transactions after 60 seconds. The tool also honors a process-level `PGOPTIONS` if `BEE_PI_AGENT_DBT_PGOPTIONS` is not set.
+
+For direct database queries that do not use the built-in dbt tool, set the standard `PGOPTIONS` environment variable on the agent container instead. Child processes launched by the built-in `bash` tool inherit it, so libpq-compatible clients such as `psql`, dbt CLI, and psycopg-based Python scripts get the same statement, lock, idle-transaction, and application-name guards. `BEE_PI_AGENT_BASH_TIMEOUT_SECONDS` can additionally cap the entire shell command as a process-level failsafe.
 
 ## Docker image
 

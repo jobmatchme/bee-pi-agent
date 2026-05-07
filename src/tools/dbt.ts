@@ -44,6 +44,8 @@ interface DbtToolDetails {
 	projectDir?: string;
 	profilesDir?: string;
 	target?: string;
+	timeout?: number;
+	pgOptions?: string;
 	truncation?: TruncationResult;
 	fullOutputPath?: string;
 	command: string;
@@ -55,6 +57,13 @@ function readEnv(...names: string[]): string | undefined {
 		if (value) return value;
 	}
 	return undefined;
+}
+
+function readPositiveNumberEnv(...names: string[]): number | undefined {
+	const value = readEnv(...names);
+	if (!value) return undefined;
+	const parsed = Number(value);
+	return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
 }
 
 function resolveIfPresent(baseDir: string, value: string | undefined): string | undefined {
@@ -137,6 +146,25 @@ function assertDbtAction(value: string): DbtAction {
 		return value as DbtAction;
 	}
 	throw new Error(`Unsupported dbt action '${value}'. Use one of: ${DBT_ACTIONS.join(", ")}`);
+}
+
+function resolveDbtTimeout(requestedTimeout: number | undefined): number | undefined {
+	const configuredTimeout = readPositiveNumberEnv(
+		"BEE_PI_AGENT_DBT_TIMEOUT_SECONDS",
+		"PI_AGENT_WORKER_DBT_TIMEOUT_SECONDS",
+	);
+	if (configuredTimeout === undefined) return requestedTimeout;
+	if (requestedTimeout === undefined || requestedTimeout <= 0) return configuredTimeout;
+	return Math.min(requestedTimeout, configuredTimeout);
+}
+
+function resolveDbtPgOptions(): string | undefined {
+	return readEnv("BEE_PI_AGENT_DBT_PGOPTIONS", "PI_AGENT_WORKER_DBT_PGOPTIONS", "PGOPTIONS");
+}
+
+function applyDbtPgOptions(command: string, pgOptions: string | undefined): string {
+	if (!pgOptions) return command;
+	return `PGOPTIONS=${shellEscape(pgOptions)} ${command}`;
 }
 
 function buildDbtCommand(args: {
@@ -245,7 +273,7 @@ export function createDbtTool(
 		name: "dbt",
 		label: "dbt",
 		description:
-			"Run dbt commands for model discovery, compilation, execution, and inline SQL preview. Supports list/show/build/compile/run/test/parse. Configure BEE_PI_AGENT_DBT_PROJECT_DIR and optionally BEE_PI_AGENT_DBT_COMMAND / BEE_PI_AGENT_DBT_PROFILES_DIR.",
+			"Run dbt commands for model discovery, compilation, execution, and inline SQL preview. Supports list/show/build/compile/run/test/parse. Configure BEE_PI_AGENT_DBT_PROJECT_DIR and optionally BEE_PI_AGENT_DBT_COMMAND / BEE_PI_AGENT_DBT_PROFILES_DIR. BEE_PI_AGENT_DBT_TIMEOUT_SECONDS can set a default/hard maximum command timeout; BEE_PI_AGENT_DBT_PGOPTIONS can set PostgreSQL runtime guards such as statement_timeout.",
 		parameters: dbtSchema,
 		execute: async (
 			_toolCallId: string,
@@ -286,25 +314,30 @@ export function createDbtTool(
 			const profilesDir = resolveDbtProfilesDir(projectDir);
 			const dbtExecutable = resolveDbtExecutable(projectDir, workspaceRoot, workingDir);
 			const resolvedTarget = target || readEnv("BEE_PI_AGENT_DBT_TARGET", "PI_AGENT_WORKER_DBT_TARGET");
-			const command = buildDbtCommand({
-				dbtExecutable,
-				projectDir,
-				profilesDir,
-				action: resolvedAction,
-				select,
-				inlineSql,
-				target: resolvedTarget,
-				vars,
-				limit,
-				output,
-				resourceTypes,
-				fullRefresh,
-				defer,
-				state,
-				favorState,
-			});
+			const resolvedTimeout = resolveDbtTimeout(timeout);
+			const resolvedPgOptions = resolveDbtPgOptions();
+			const command = applyDbtPgOptions(
+				buildDbtCommand({
+					dbtExecutable,
+					projectDir,
+					profilesDir,
+					action: resolvedAction,
+					select,
+					inlineSql,
+					target: resolvedTarget,
+					vars,
+					limit,
+					output,
+					resourceTypes,
+					fullRefresh,
+					defer,
+					state,
+					favorState,
+				}),
+				resolvedPgOptions,
+			);
 
-			const result = await executor.exec(command, { timeout, signal });
+			const result = await executor.exec(command, { timeout: resolvedTimeout, signal });
 			let combinedOutput = "";
 			if (result.stdout) combinedOutput += result.stdout;
 			if (result.stderr) {
@@ -363,6 +396,8 @@ export function createDbtTool(
 				projectDir,
 				profilesDir,
 				target: resolvedTarget,
+				timeout: resolvedTimeout,
+				pgOptions: resolvedPgOptions,
 				truncation: truncated.truncation.truncated ? truncated.truncation : undefined,
 				fullOutputPath,
 				command,

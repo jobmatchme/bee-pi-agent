@@ -19,15 +19,41 @@ const bashSchema = Type.Object({
 });
 
 interface BashToolDetails {
+	timeout?: number;
 	truncation?: TruncationResult;
 	fullOutputPath?: string;
+}
+
+function readEnv(...names: string[]): string | undefined {
+	for (const name of names) {
+		const value = process.env[name];
+		if (value) return value;
+	}
+	return undefined;
+}
+
+function readPositiveNumberEnv(...names: string[]): number | undefined {
+	const value = readEnv(...names);
+	if (!value) return undefined;
+	const parsed = Number(value);
+	return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+}
+
+function resolveBashTimeout(requestedTimeout: number | undefined): number | undefined {
+	const configuredTimeout = readPositiveNumberEnv(
+		"BEE_PI_AGENT_BASH_TIMEOUT_SECONDS",
+		"PI_AGENT_WORKER_BASH_TIMEOUT_SECONDS",
+	);
+	if (configuredTimeout === undefined) return requestedTimeout;
+	if (requestedTimeout === undefined || requestedTimeout <= 0) return configuredTimeout;
+	return Math.min(requestedTimeout, configuredTimeout);
 }
 
 export function createBashTool(executor: Executor): AgentTool<typeof bashSchema> {
 	return {
 		name: "bash",
 		label: "bash",
-		description: `Execute a bash command in the current working directory. Output is truncated to the last ${DEFAULT_MAX_LINES} lines or ${DEFAULT_MAX_BYTES / 1024}KB.`,
+		description: `Execute a bash command in the current working directory. Output is truncated to the last ${DEFAULT_MAX_LINES} lines or ${DEFAULT_MAX_BYTES / 1024}KB. BEE_PI_AGENT_BASH_TIMEOUT_SECONDS can set a default/hard maximum command timeout.`,
 		parameters: bashSchema,
 		execute: async (
 			_toolCallId: string,
@@ -35,8 +61,9 @@ export function createBashTool(executor: Executor): AgentTool<typeof bashSchema>
 			signal?: AbortSignal,
 		) => {
 			let tempFilePath: string | undefined;
+			const resolvedTimeout = resolveBashTimeout(timeout);
 
-			const result = await executor.exec(command, { timeout, signal });
+			const result = await executor.exec(command, { timeout: resolvedTimeout, signal });
 			let output = "";
 			if (result.stdout) output += result.stdout;
 			if (result.stderr) {
@@ -54,10 +81,10 @@ export function createBashTool(executor: Executor): AgentTool<typeof bashSchema>
 
 			const truncation = truncateTail(output);
 			let outputText = truncation.content || "(no output)";
-			let details: BashToolDetails | undefined;
+			let details: BashToolDetails | undefined = resolvedTimeout ? { timeout: resolvedTimeout } : undefined;
 
 			if (truncation.truncated) {
-				details = { truncation, fullOutputPath: tempFilePath };
+				details = { ...details, truncation, fullOutputPath: tempFilePath };
 				const startLine = truncation.totalLines - truncation.outputLines + 1;
 				const endLine = truncation.totalLines;
 
