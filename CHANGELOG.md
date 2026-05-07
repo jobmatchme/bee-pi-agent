@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.13
+
+- add configurable hard/default timeouts for built-in bash and dbt tool executions
+- allow dbt tool invocations to apply PostgreSQL runtime guards via `BEE_PI_AGENT_DBT_PGOPTIONS` / `PGOPTIONS`
+- document `PGOPTIONS` for direct database clients launched by the agent
+
 ## 0.1.12
 
 - emit only the final assistant answer to the gateway and suppress internal thinking output
